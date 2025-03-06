@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import pandas as pd
+import os  # 파일 이름 처리를 위해 추가
 
 # JSONL 파일 읽기
 def read_jsonl(file):
@@ -83,7 +84,12 @@ if uploaded_file:
             st.error("❌ 올바른 JSONL 데이터를 업로드하세요.")
             st.stop()
 
-        table_name = "users"
+        # ✅ 파일 이름에서 확장자 제거하여 기본 테이블 이름 설정
+        default_table_name = os.path.splitext(uploaded_file.name)[0]
+
+        # ✅ 사용자가 직접 테이블 이름 입력 가능 (기본값: 파일 이름)
+        table_name = st.text_input("📌 테이블 이름 입력", value=default_table_name)
+
         column_types = infer_column_types(json_data)
 
         # ✅ 테이블 형태로 필드 선택 및 데이터 타입 변경 가능
