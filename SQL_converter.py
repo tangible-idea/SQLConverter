@@ -77,15 +77,41 @@ if uploaded_file:
         table_name = "users"
         column_types = infer_column_types(json_data)
 
-        # 📌 필드명 및 데이터 타입 테이블 출력
-        st.subheader("📌 데이터 필드 및 타입")
-        df = pd.DataFrame(list(column_types.items()), columns=["Column Name", "Data Type"])
-        st.dataframe(df, height=300)
+        # ✅ 테이블 형태로 데이터 표시
+        st.subheader("📌 변환할 필드 선택 및 데이터 타입 수정")
+
+        # 데이터 프레임 생성
+        df = pd.DataFrame({
+            "사용": [True] * len(column_types),  # 기본적으로 모든 필드 선택됨
+            "필드명": list(column_types.keys()),
+            "데이터 타입": list(column_types.values())
+        })
+
+        # Streamlit 데이터 편집 기능 제공
+        edited_df = st.data_editor(
+            df,
+            column_config={
+                "사용": st.column_config.CheckboxColumn("사용"),
+                "데이터 타입": st.column_config.SelectboxColumn(
+                    "데이터 타입", options=["TEXT", "INTEGER", "FLOAT", "BOOLEAN", "TEXT[]"]
+                )
+            },
+            disabled=["필드명"],  # 필드명은 수정 불가능
+            use_container_width=True
+        )
+
+        # 선택된 필드만 반영
+        selected_columns = edited_df[edited_df["사용"]]
+        filtered_columns = dict(zip(selected_columns["필드명"], selected_columns["데이터 타입"]))
 
         # Run 버튼 표시
         if st.button("🚀 Run (CREATE & INSERT SQL 생성)"):
-            create_sql = generate_sql_create(table_name, column_types)
-            insert_sql = generate_sql_insert(table_name, json_data, column_types)
+            if not filtered_columns:
+                st.error("❌ 최소한 하나 이상의 필드를 선택해야 합니다.")
+                st.stop()
+
+            create_sql = generate_sql_create(table_name, filtered_columns)
+            insert_sql = generate_sql_insert(table_name, json_data, filtered_columns)
 
             st.subheader("📌 생성된 CREATE TABLE 쿼리")
             st.code(create_sql, language="sql")
